@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#050608">
+<title>深渊档案 · 3D恐怖原型</title>
+<style>
+:root{color-scheme:dark;--ui:rgba(10,13,16,.78);--line:rgba(220,230,235,.18);--txt:#e8ecee}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030405;color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif;touch-action:none}
+#game{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,.28) 68%,rgba(0,0,0,.82) 115%);z-index:2}
+#grain{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:.045;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E")}
+#hud{position:fixed;z-index:5;inset:0;pointer-events:none}
+.top{position:absolute;top:max(14px,env(safe-area-inset-top));left:15px;right:15px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.brand{font-size:11px;letter-spacing:2.6px;color:#b5c1c7;text-transform:uppercase}
+.subtitle{margin-top:5px;font-size:10px;letter-spacing:1px;color:#758087}
+.status{border:1px solid var(--line);background:rgba(5,8,10,.58);padding:7px 9px;border-radius:7px;font-size:10px;color:#b9c7cc;backdrop-filter:blur(8px);max-width:48vw;text-align:right}
+#crosshair{position:absolute;left:50%;top:50%;width:12px;height:12px;transform:translate(-50%,-50%);opacity:.8}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:rgba(230,240,240,.7);box-shadow:0 0 4px #fff}
+#crosshair:before{left:5px;top:1px;width:1px;height:10px}
+#crosshair:after{left:1px;top:5px;width:10px;height:1px}
+.bottomInfo{position:absolute;left:15px;bottom:max(18px,env(safe-area-inset-bottom));font-size:10px;letter-spacing:1px;line-height:1.7;color:#9ba7ad;text-shadow:0 1px 6px #000}
+#message{position:absolute;left:50%;top:19%;transform:translateX(-50%);width:max-content;max-width:80vw;text-align:center;font-size:12px;letter-spacing:2px;color:#d5dddf;text-shadow:0 2px 8px #000;opacity:0;transition:opacity .4s}
+#message.show{opacity:1}
+#controls{position:fixed;z-index:8;inset:0;pointer-events:none}
+#stickZone{position:absolute;left:0;bottom:0;width:48vw;height:44vh;pointer-events:auto}
+#stickBase{position:absolute;left:26px;bottom:max(28px,calc(env(safe-area-inset-bottom) + 18px));width:112px;height:112px;border:1px solid rgba(220,230,235,.24);border-radius:50%;background:rgba(16,21,25,.25);box-shadow:inset 0 0 28px rgba(0,0,0,.35);pointer-events:none}
+#stickKnob{position:absolute;left:50%;top:50%;width:43px;height:43px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(235,245,245,.35);background:rgba(200,215,220,.16);box-shadow:0 0 18px rgba(0,0,0,.5)}
+#lookZone{position:absolute;right:0;top:12%;width:65vw;height:65vh;pointer-events:auto}
+#buttons{position:absolute;right:16px;bottom:max(26px,calc(env(safe-area-inset-bottom) + 14px));display:flex;flex-direction:column;gap:10px;pointer-events:auto}
+.action{width:54px;height:54px;border-radius:50%;border:1px solid rgba(225,235,238,.27);background:rgba(12,17,20,.58);color:#dce5e8;font-size:10px;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);box-shadow:0 5px 20px #0005}
+.action.active{background:rgba(175,195,200,.25);border-color:rgba(235,245,245,.65)}
+#startScreen{position:fixed;z-index:20;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at center,rgba(20,26,29,.83),rgba(2,3,4,.97) 75%)}
+.panel{width:min(430px,100%);border:1px solid rgba(220,230,235,.17);background:rgba(8,11,13,.82);padding:25px 22px 21px;box-shadow:0 20px 90px #000b;backdrop-filter:blur(16px)}
+.eyebrow{font-size:10px;letter-spacing:3px;color:#8d9ba1}
+h1{margin:13px 0 9px;font-size:27px;letter-spacing:3px;font-weight:600}
+.lead{font-size:12px;color:#a7b1b5;line-height:1.8;margin:0 0 20px}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:17px 0 21px}
+.spec{padding:10px;border:1px solid rgba(220,230,235,.1);background:rgba(255,255,255,.025)}
+.spec b{display:block;font-size:11px;font-weight:500;color:#dce4e7;margin-bottom:5px}
+.spec span{font-size:10px;color:#7e8a90}
+#startBtn{width:100%;border:1px solid #b9c6ca;background:#d5dfe1;color:#111719;padding:14px 12px;font-size:12px;letter-spacing:2px;font-weight:700;border-radius:2px}
+.small{font-size:10px;color:#718087;line-height:1.7;margin:13px 0 0}
+#warning{display:none;color:#ffb9a8;font-size:12px;line-height:1.7;margin-top:12px}
+@media(min-width:700px){.panel{width:440px}#stickZone,#lookZone,#buttons{opacity:.65}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="game"></div><div id="vignette"></div><div id="grain"></div>
+<div id="hud">
+  <div class="top"><div><div class="brand">ABYSS FILES / 001</div><div class="subtitle">现场记录 · 未授权区域</div></div><div class="status" id="status">正在初始化 WebGL…</div></div>
+  <div id="crosshair"></div><div id="message">这里不应该有人。</div>
+  <div class="bottomInfo">REC ● <span id="rec">00:00</span><br>LIGHT <span id="lightState">ON</span>　BAT <span id="battery">87%</span><br><span id="gamepadState">GAMEPAD · 等待连接</span></div>
+</div>
+<div id="controls">
+  <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
+  <div id="lookZone"></div>
+  <div id="buttons"><button class="action" id="lightBtn">手电</button><button class="action" id="runBtn">奔跑</button><button class="action" id="interactBtn">调查</button></div>
+</div>
+<div id="startScreen">
+ <div class="panel">
+  <div class="eyebrow">INTERACTIVE PROTOTYPE / 01</div>
+  <h1>深渊档案</h1>
+  <p class="lead">一段尚未结束的现场记录。走廊深处的灯还亮着，但建筑早已断电。</p>
+  <div class="specs">
+   <div class="spec"><b>真实 3D 场景</b><span>Three.js · WebGL</span></div>
+   <div class="spec"><b>第一人称探索</b><span>触屏移动 / 视角滑动</span></div>
+   <div class="spec"><b>动态手电光</b><span>阴影与闪烁灯光</span></div>
+   <div class="spec"><b>手柄检测</b><span>Gamepad API</span></div>
+  </div>
+  <button id="startBtn">进入现场</button>
+  <p class="small">建议横屏游玩并连接手柄。首次版本用于验证 iPhone 的 3D 渲染与输入；模型、动画和更精细的 PBR 资源会在后续阶段替换升级。</p>
+  <div id="warning"></div>
+ </div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const $=id=>document.getElementById(id);
+const warning=$('warning');
+let scene,camera,renderer,flashlight,ambient,clock,started=false,lightOn=true,running=false,exitDoor=null;
+let player={x:0,z:5,yaw:0,pitch:0};
+let move={x:0,y:0};let keys={};let battery=87;let startTime=0;let flicker=0;
+let walls=[];let raycaster=new THREE.Raycaster();let enemies=[];let lockers=[];let keyObject=null;let hasKey=false;let hiding=false;let gameOver=false;let escaped=false;let objectiveText='找到钥匙，打开走廊尽头的门。';
+const mobile=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+function status(t){$('status').textContent=t}
+function showWarning(t){warning.style.display='block';warning.textContent=t}
+function mat(color,roughness=.9,metalness=0,extra={}){return new THREE.MeshStandardMaterial({color,roughness,metalness,...extra})}
+function box(w,h,d,material,x,y,z,cast=true,receive=true){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=receive;scene.add(m);return m;
+}
+function createTexture(base,variant){
+ const c=document.createElement('canvas');c.width=256;c.height=256;const ctx=c.getContext('2d');
+ ctx.fillStyle=base;ctx.fillRect(0,0,256,256);
+ // Canvas is used only to create a surface texture; the scene itself is real WebGL 3D geometry.
+ for(let i=0;i<1700;i++){const x=Math.random()*256,y=Math.random()*256,a=Math.random()*.12;ctx.fillStyle=`rgba(${variant===0?'12,17,18':'160,170,160'},${a})`;ctx.fillRect(x,y,Math.random()*4+1,Math.random()*4+1)}
+ if(variant===0){for(let y=0;y<256;y+=64){ctx.strokeStyle='rgba(0,0,0,.22)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke()}}
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,1);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+function init(){
+ try{
+  const test=document.createElement('canvas');
+  if(!test.getContext('webgl2')){showWarning('当前浏览器没有成功启用 WebGL2。请使用最新版 iOS Safari，并检查“设置 > Safari > 高级 > 实验性功能”没有关闭图形相关能力。');status('WebGL2 不可用');return false}
+  renderer=new THREE.WebGLRenderer({antialias:!mobile,alpha:false,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mobile?1.45:1.8));
+  renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  $('game').appendChild(renderer.domElement);
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x050708);scene.fog=new THREE.FogExp2(0x080b0c,.047);
+  camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.08,100);camera.rotation.order='YXZ';
+  camera.position.set(0,1.68,5);
+  clock=new THREE.Clock();
+  ambient=new THREE.HemisphereLight(0x82909a,0x100e0b,.33);scene.add(ambient);
+  const fill=new THREE.PointLight(0x8da3ad,.45,14,2);fill.position.set(0,3.2,-3);scene.add(fill);
+  const wallTex=createTexture('#343837',0),floorTex=createTexture('#202321',1);
+  const wallMat=new THREE.MeshStandardMaterial({map:wallTex,color:0x777b77,roughness:.98});
+  const floorMat=new THREE.MeshStandardMaterial({map:floorTex,color:0x686a65,roughness:.96});
+  const ceilingMat=mat(0x242827,1),trimMat=mat(0x191e1d,.8),doorMat=mat(0x282d2b,.95),rustMat=mat(0x493a30,.92);
+  // Corridor shell: true 3D meshes with material response and distance fog.
+  box(5.2,.25,34,floorMat,0,-.13,-9,false,true);
+  box(5.2,.25,34,ceilingMat,0,3.35,-9,false,true);
+  box(.25,3.5,34,wallMat,-2.6,1.62,-9,false,true);
+  box(.25,3.5,34,wallMat,2.6,1.62,-9,false,true);
+  // repeating wall panels, seams, pipes and skirting make the corridor read at a glance
+  for(let z=7;z>-27;z-=2.8){
+   box(.035,2.85,.035,trimMat,-2.44,1.5,z,false,true);
+   box(.035,2.85,.035,trimMat,2.44,1.5,z,false,true);
+   box(.08,.22,2.8,trimMat,-2.43,.16,z,false,true);
+   box(.08,.22,2.8,trimMat,2.43,.16,z,false,true);
+   if(Math.random()>.22){
+    const side=Math.random()>.5?-1:1;
+    box(.045,.055,1.1,rustMat,side*2.44,2.65,z-.65,false,true);
+   }
+  }
+  // door recesses and heavy metal doors
+  for(const z of [1,-5,-12,-20]){
+   for(const side of [-1,1]){
+    box(.12,2.5,1.25,trimMat,side*2.42,1.25,z,false,true);
+    box(.08,2.28,1.02,doorMat,side*2.34,1.2,z,false,true);
+    box(.04,.09,.045,rustMat,side*2.27,1.12,z-.28,false,true);
+    box(.09,.05,.42,trimMat,side*2.27,2.53,z,false,true);
+   }
+  }
+  // floor stains / debris blocks
+  for(let i=0;i<45;i++){
+   const x=(Math.random()-.5)*4.1,z=4-Math.random()*30;
+   const size=.04+Math.random()*.22;
+   const debris=box(size,.018,size*1.8,Math.random()>.5?trimMat:rustMat,x,-.005,z,false,true);
+   debris.rotation.y=Math.random()*Math.PI;
+  }
+  // overhead fixtures, alternating dim and failing
+  for(let z=5;z>-27;z-=5.3){
+   box(.72,.06,1.05,mat(0x373e3d,.6),0,3.19,z,false,true);
+   const lamp=new THREE.PointLight(z%2?0xbed0d5:0xb3c4c8,z%2?.65:.35,8,2);
+   lamp.position.set(0,3.05,z);scene.add(lamp);walls.push({lamp,base:lamp.intensity,phase:Math.random()*9});
+   box(.48,.025,.72,mat(0xa7b4b3,.4,0,{emissive:0x6d8587,emissiveIntensity:.55}),0,3.145,z,false,false);
+  }
+  // distant blocked doorway and a barely readable silhouette-like hanging sheet
+  exitDoor=box(2.1,2.75,.22,mat(0x101413),0,1.35,-25.8,false,true);
+  for(let i=0;i<3;i++){
+   const cloth=box(.22+Math.random()*.25,1.5+Math.random()*.6,.035,mat(0x363c39,.98),-.65+i*.58,1.3,-23.9,false,true);
+   cloth.rotation.z=(Math.random()-.5)*.08;
+  }
+  flashlight=new THREE.SpotLight(0xdbe7eb,38,22,Math.PI/7,0.48,1.35);
+  flashlight.position.copy(camera.position);flashlight.target.position.set(0,1.3,-3);scene.add(flashlight,flashlight.target);
+  flashlight.castShadow=true;flashlight.shadow.mapSize.set(512,512);
+  createGameplayObjects();
+  status('WebGL2 正常 · 3D 场景已创建');
+  window.addEventListener('resize',resize);
+  window.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault()});
+  window.addEventListener('keyup',e=>keys[e.code]=false);
+  window.addEventListener('gamepadconnected',e=>{$('gamepadState').textContent='GAMEPAD · '+(e.gamepad.id||'已连接').slice(0,22);status('手柄已连接')});
+  window.addEventListener('gamepaddisconnected',()=>{$('gamepadState').textContent='GAMEPAD · 已断开'});
+  return true;
+ }catch(e){showWarning('初始化失败：'+e.message);status('初始化失败');return false}
+}
+function resize(){if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.45:1.8))}
+function toggleLight(){lightOn=!lightOn;flashlight.visible=lightOn;$('lightBtn').classList.toggle('active',lightOn);$('lightState').textContent=lightOn?'ON':'OFF';$('message').textContent=lightOn?'手电光束已开启。':'黑暗吞没了走廊。';toast()}
+function toast(){$('message').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('message').classList.remove('show'),1700)}
+$('lightBtn').addEventListener('click',toggleLight);
+$('runBtn').addEventListener('touchstart',e=>{e.preventDefault();running=true;$('runBtn').classList.add('active')});
+['touchend','touchcancel'].forEach(ev=>$('runBtn').addEventListener(ev,()=>{running=false;$('runBtn').classList.remove('active')}));
+$('runBtn').addEventListener('mousedown',()=>running=true);$('runBtn').addEventListener('mouseup',()=>running=false);
+$('interactBtn').addEventListener('click',interact);
+// joystick
+const zone=$('stickZone'),knob=$('stickKnob');let stickId=null,origin={x:0,y:0};
+zone.addEventListener('pointerdown',e=>{stickId=e.pointerId;zone.setPointerCapture(stickId);origin={x:e.clientX,y:e.clientY};move={x:0,y:0};knob.style.transition='none';knob.style.left='50%';knob.style.top='50%'});
+zone.addEventListener('pointermove',e=>{if(e.pointerId!==stickId)return;const dx=e.clientX-origin.x,dy=e.clientY-origin.y,len=Math.hypot(dx,dy),max=39,k=len>max?max/len:1;move.x=dx/max;move.y=dy/max;knob.style.left=`calc(50% + ${dx*k}px)`;knob.style.top=`calc(50% + ${dy*k}px)`});
+function resetStick(){stickId=null;move={x:0,y:0};knob.style.transition='left .12s,top .12s';knob.style.left='50%';knob.style.top='50%'}
+zone.addEventListener('pointerup',resetStick);zone.addEventListener('pointercancel',resetStick);
+// right-side drag look
+const look=$('lookZone');let lookId=null,last={x:0,y:0};
+look.addEventListener('pointerdown',e=>{lookId=e.pointerId;look.setPointerCapture(lookId);last={x:e.clientX,y:e.clientY}});
+look.addEventListener('pointermove',e=>{if(e.pointerId!==lookId||!started)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;player.yaw-=dx*.0042;player.pitch-=dy*.0035;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.25,1.25);last={x:e.clientX,y:e.clientY}});
+['pointerup','pointercancel'].forEach(ev=>look.addEventListener(ev,()=>lookId=null));
+function updateGamepad(dt){
+ const gps=navigator.getGamepads?navigator.getGamepads():[];let gp=null;for(const g of gps)if(g&&g.connected){gp=g;break}
+ if(gp){
+  const dead=v=>Math.abs(v)<.16?0:v;
+  const lx=dead(gp.axes[0]||0),ly=dead(gp.axes[1]||0),rx=dead(gp.axes[2]||0),ry=dead(gp.axes[3]||0);
+  move.x=lx;move.y=ly;
+  player.yaw-=rx*2.3*dt;player.pitch=THREE.MathUtils.clamp(player.pitch+ry*1.65*dt,-1.25,1.25);
+  running=!!(gp.buttons[10]?.pressed||gp.buttons[1]?.pressed);
+  if(gp.buttons[0]?.pressed&&!updateGamepad.a){toggleLight()}updateGamepad.a=!!gp.buttons[0]?.pressed;
+  $('gamepadState').textContent='GAMEPAD · 已连接';
+ }
+}
+function update(dt,t){
+ if(!started)return;
+ if(gameOver||escaped){camera.rotation.set(player.pitch,player.yaw,0,'YXZ');renderer.render(scene,camera);return}
+ updateGamepad(dt);
+ if(hiding){camera.rotation.set(player.pitch,player.yaw,0,'YXZ');updateEnemies(dt,t);updateKeyAndObjective();if(lightOn){battery=Math.max(0,battery-dt*.018)}$('battery').textContent=Math.floor(battery)+'%';$('rec').textContent=new Date((Date.now()-startTime)).toISOString().slice(14,19);return}
+ const forward=(keys.KeyW||keys.ArrowUp)?-1:(keys.KeyS||keys.ArrowDown)?1:move.y;
+ const strafe=(keys.KeyD||keys.ArrowRight)?1:(keys.KeyA||keys.ArrowLeft)?-1:move.x;
+ const speed=running?4.4:2.25;
+ const dx=(Math.sin(player.yaw)*(-forward)+Math.cos(player.yaw)*strafe)*speed*dt;
+ const dz=(Math.cos(player.yaw)*forward-Math.sin(player.yaw)*strafe)*speed*dt;
+ const nx=THREE.MathUtils.clamp(player.x+dx,-1.93,1.93),nz=THREE.MathUtils.clamp(player.z+dz, -24.7,6.2);
+ // door panels are visual only; keep the player inside the corridor
+ player.x=nx;player.z=nz;
+ camera.position.set(player.x,1.66+Math.sin(t*2.5)*(Math.abs(forward)+Math.abs(strafe)>.1?.025:.004),player.z);
+ camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
+ flashlight.position.copy(camera.position);
+ const dir=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);flashlight.target.position.copy(camera.position).add(dir.multiplyScalar(8));
+ for(const w of walls){const f=Math.sin(t*2.3+w.phase);w.lamp.intensity=w.base*(f>.94?.05:(f<-.97?.28:1));}
+ if(lightOn){battery=Math.max(0,battery-dt*.018);if(battery===0){flashlight.intensity=10}}else{battery=Math.min(100,battery+dt*.006)}
+ $('battery').textContent=Math.floor(battery)+'%';
+ $('rec').textContent=new Date((Date.now()-startTime)).toISOString().slice(14,19);
+ updateEnemies(dt,t);
+ updateKeyAndObjective();
+ if(player.z < -18 && !update.seen){update.seen=true;$('message').textContent='门后传来缓慢的刮擦声……找到钥匙。';toast()}
+}
+
+function createHumanoid(name,x,z,creature=false){
+ const root=new THREE.Group();root.position.set(x,0,z);scene.add(root);
+ const skin=mat(creature?0x262d2a:0x4a4a45,.98);
+ const cloth=mat(creature?0x161a19:0x292b29,.97);
+ const dark=mat(0x090b0b,.75);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(creature?.24:.19,12,10),skin);head.position.y=creature?1.72:1.66;head.scale.set(creature?.8:1,creature?1.25:1,creature?.9:1);root.add(head);
+ const torso=new THREE.Mesh(new THREE.BoxGeometry(creature?.52:.43,creature?.78:.65,creature?.25:.22),cloth);torso.position.y=1.13;root.add(torso);
+ const shoulderY=1.36, armLen=creature?.78:.58;
+ const arms=[];
+ for(const side of [-1,1]){
+  const arm=new THREE.Mesh(new THREE.CylinderGeometry(creature?.075:.09,creature?.06:.07,armLen,8),skin);
+  arm.position.set(side*(creature?.36:.29),shoulderY-armLen*.28,0);arm.rotation.z=side*(creature?.28:.12);root.add(arm);arms.push(arm);
+  const hand=new THREE.Mesh(new THREE.SphereGeometry(.075,8,7),skin);hand.position.set(side*(creature?.48:.34),shoulderY-armLen*.72,0);root.add(hand);
+  const leg=new THREE.Mesh(new THREE.CylinderGeometry(.09,.07,.72,8),cloth);leg.position.set(side*.13,.39,0);root.add(leg);
+ }
+ const eyeMat=new THREE.MeshStandardMaterial({color:0xffe4bf,emissive:creature?0xff3b1d:0x7e8580,emissiveIntensity:creature?1.8:.25,roughness:.3});
+ for(const side of [-1,1]){
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(creature?.045:.025,8,6),eyeMat);
+  eye.position.set(side*.075,creature?1.76:1.68,-.16);root.add(eye);
+ }
+ const state={name,root,creature,arms,homeX:x,homeZ:z,phase:Math.random()*6,state:'patrol',speed:creature?1.25:.9,search:0,alert:0,walk:0};
+ enemies.push(state);return state;
+}
+function createGameplayObjects(){
+ // Tall lockers are usable hiding places, built from real 3D meshes.
+ for(const [x,z] of [[-1.78,-2.5],[1.78,-9.5],[-1.78,-16.2]]){
+  const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.66,2.25,.72),mat(0x303634,.8,.35));body.position.y=1.12;g.add(body);
+  const door=new THREE.Mesh(new THREE.BoxGeometry(.58,2.12,.035),mat(0x3c4441,.72,.3));door.position.set(0,1.12,-.38);g.add(door);
+  for(let i=0;i<5;i++){const vent=new THREE.Mesh(new THREE.BoxGeometry(.22,.025,.012),mat(0x111615));vent.position.set(0,1.55+i*.09,-.403);g.add(vent)}
+  const handle=new THREE.Mesh(new THREE.BoxGeometry(.035,.18,.025),mat(0x85877d,.45,.65));handle.position.set(.21,1.1,-.408);g.add(handle);
+  lockers.push({group:g,x,z});
+ }
+ // A brass key glints in the flashlight beam near a toppled supply box.
+ keyObject=new THREE.Group();keyObject.position.set(.72,.19,-7.3);scene.add(keyObject);
+ const gold=new THREE.MeshStandardMaterial({color:0xb99a54,metalness:.82,roughness:.28,emissive:0x38250b,emissiveIntensity:.35});
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(.09,.022,7,16),gold);ring.position.x=-.08;keyObject.add(ring);
+ const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.25,8),gold);shaft.rotation.z=Math.PI/2;shaft.position.x=.09;keyObject.add(shaft);
+ const tooth=new THREE.Mesh(new THREE.BoxGeometry(.055,.07,.025),gold);tooth.position.set(.19,-.055,0);keyObject.add(tooth);
+ const glow=new THREE.PointLight(0xe6bc62,.5,1.5);glow.position.set(0,.2,0);keyObject.add(glow);
+ createHumanoid('巡逻者',.5,-14,false);
+ createHumanoid('深处的东西',-.25,-22.5,true);
+}
+function nearestLocker(){
+ let best=null,dist=1.45;
+ for(const l of lockers){const d=Math.hypot(player.x-l.x,player.z-l.z);if(d<dist){best=l;dist=d}}
+ return best;
+}
+function interact(){
+ if(!started)return;
+ if(gameOver||escaped){$('message').textContent='记录已结束。刷新页面可以重新开始。';toast();return}
+ if(hiding){hiding=false;camera.position.set(player.x,1.66,player.z);$('message').textContent='你从柜子里出来了。';toast();return}
+ if(keyObject&&!hasKey&&Math.hypot(player.x-keyObject.position.x,player.z-keyObject.position.z)<1.45){
+  hasKey=true;scene.remove(keyObject);keyObject=null;$('message').textContent='拿到了黄铜钥匙。去走廊尽头。';toast();return;
+ }
+ const locker=nearestLocker();
+ if(locker){hiding=true;player.x=locker.x;player.z=locker.z+.62;camera.position.set(player.x,1.38,player.z);$('message').textContent='你躲进了柜子。保持安静，等待危险过去。';toast();return}
+ if(player.z<-22.8){
+  if(hasKey){escaped=true;$('message').textContent='门锁咔哒一声打开了。你逃进了黑暗。';$('message').classList.add('show');status('章节完成 · 现场记录终止');$('interactBtn').textContent='完成';return}
+  $('message').textContent='门被锁住了。需要一把黄铜钥匙。';toast();return;
+ }
+ $('message').textContent='仔细观察四周。钥匙可能落在地上。';toast();
+}
+function updateKeyAndObjective(){
+ if(keyObject){keyObject.rotation.y+=.012;keyObject.position.y=.19+Math.sin(clock.elapsedTime*2.2)*.035}
+ const nearKey=keyObject&&Math.hypot(player.x-keyObject.position.x,player.z-keyObject.position.z)<1.5;
+ const nearLocker=nearestLocker();
+ $('interactBtn').textContent=nearKey?'拿钥匙':hiding?'离开柜子':nearLocker?'躲藏':player.z<-22.8?(hasKey?'开门':'检查门'):'调查';
+ if(hiding){camera.position.y=1.15;camera.position.x=player.x;camera.position.z=player.z;return}
+}
+function updateEnemies(dt,t){
+ for(const e of enemies){
+  const dx=player.x-e.root.position.x,dz=player.z-e.root.position.z,dist=Math.hypot(dx,dz);
+  const facingDot=(Math.sin(player.yaw)*dx-Math.cos(player.yaw)*dz)/(dist||1);
+  const canSee=!hiding&&dist<(e.creature?8:7)&&(lightOn||dist<2.3)&&facingDot>-.45;
+  if(canSee){e.alert=Math.min(1,e.alert+dt*1.2);e.state='chase';e.search=3}
+  else if(e.state==='chase'){e.search-=dt;if(e.search<=0)e.state='search'}
+  if(e.state==='chase'||e.state==='search'){
+   const targetX=e.state==='chase'?player.x:e.homeX,targetZ=e.state==='chase'?player.z:e.homeZ;
+   const vx=targetX-e.root.position.x,vz=targetZ-e.root.position.z,len=Math.hypot(vx,vz)||1;
+   const speed=e.speed*(e.state==='chase'?1.5:1);
+   e.root.position.x+=vx/len*speed*dt;e.root.position.z+=vz/len*speed*dt;
+   e.root.rotation.y=Math.atan2(vx,vz);
+   if(e.state==='search'&&Math.hypot(vx,vz)<.4)e.state='patrol';
+  }else{
+   e.root.position.z=e.homeZ+Math.sin(t*.42+e.phase)*1.4;
+   e.root.position.x=e.homeX+Math.sin(t*.25+e.phase)*.25;
+   e.root.rotation.y=Math.sin(t*.42+e.phase)*.4;
+  }
+  e.walk+=dt*(e.state==='chase'?8:3);
+  e.root.children.forEach((obj,i)=>{if(obj.geometry&&obj.geometry.type==='CylinderGeometry'&&i>1)obj.rotation.x=Math.sin(e.walk+i)*.14});
+  if(dist<.78&&!hiding){gameOver=true;status('记录中断 · 被发现');$('message').textContent='它发现你了。记录中断。刷新页面重新开始。';$('message').classList.add('show');}
+ }
+}
+
+function animate(){requestAnimationFrame(animate);if(!renderer)return;const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;update(dt,t);renderer.render(scene,camera)}
+$('startBtn').addEventListener('click',()=>{
+ if(!renderer&&!init())return;
+ testGLB();
+ $('startScreen').style.display='none';started=true;startTime=Date.now();toast();
+ if(mobile&&screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){running=false;move={x:0,y:0}}});
+$('status').textContent='等待启动 · 请点进入现场';
+// Load a remote GLB only as a non-blocking pipeline test; failure won't stop the game scene.
+async function testGLB(){
+ try{
+  const loader=new GLTFLoader();
+  loader.load('https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf',g=>{
+   // Loaded model is used as a tiny diagnostic artifact, not part of the gameplay scene.
+   const m=g.scene; m.scale.setScalar(.001);m.position.set(0,-50,0);scene?.add(m);
+   status('WebGL2 正常 · GLB 模型加载成功');
+  },undefined,()=>{ /* External sample model may fail on some networks; core scene remains playable. */});
+ }catch(e){}
+}
+animate();
+</script>
+</body>
+</html>
